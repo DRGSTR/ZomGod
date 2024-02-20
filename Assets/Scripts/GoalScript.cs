@@ -1,25 +1,67 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class GoalScript : KeyScript
+public class GoalScript : MonoBehaviour
 {
-    private KeyScript key;
+    public event EventHandler OnKeysChanged;
 
-    private void Start()
+    private List<KeyScript.KeyType> keyList;
+
+    private void Awake()
     {
-        key = new KeyScript();
+        keyList = new List<KeyScript.KeyType>();
     }
 
-    private void OnCollisionEnter2D(Collision2D collision)
+    public List<KeyScript.KeyType> GetKeyList()
     {
-        if(collision.gameObject.tag == "Player")
+        return keyList;
+    }
+
+    public void AddKey(KeyScript.KeyType keyType)
+    {
+        Debug.Log("Added Key: " + keyType);
+        keyList.Add(keyType);
+        OnKeysChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void RemoveKey(KeyScript.KeyType keyType)
+    {
+        keyList.Remove(keyType);
+        OnKeysChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public bool ContainsKey(KeyScript.KeyType keyType)
+    {
+        return keyList.Contains(keyType);
+    }
+
+
+    private void OnTriggerEnter2D(Collider2D collider)
+    {
+        KeyScript key = collider.GetComponent<KeyScript>();
+        if (key != null)
         {
-            Debug.Log("Reached door");
-            if(key.key_collected == 1)
+            AddKey(key.GetKeyType());
+            Destroy(key.gameObject);
+        }
+
+        KeyDoor keyDoor = collider.GetComponent<KeyDoor>();
+        if (keyDoor != null)
+        {
+            if (ContainsKey(keyDoor.GetKeyType()))
             {
-                Debug.Log("Door open");
+                // Currently holding Key to open this door
+                RemoveKey(keyDoor.GetKeyType());
+                Debug.Log("Door");
+                SceneManager.LoadScene("l2");
+                //keyDoor.OpenDoor();
+            }
+            else
+            {
+                keyDoor.PlayOpenFailAnim();
             }
         }
     }
